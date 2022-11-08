@@ -1,8 +1,9 @@
-import { FC, useReducer } from 'react';
+import { FC, useReducer, useEffect } from 'react';
 import { v4 as uuidv4 } from "uuid"; //run> yarn add -D @types/uuid
 
 import { EntriesContext, entriesReducer } from './';
 import { Entry } from '../../interfaces';
+import entriesApi from '../../apis/entriesApi';
 
 export interface EntriesState {
     entries: Entry[];
@@ -35,6 +36,15 @@ export const EntriesProvider: FC<Props> = ({ children }) => {
 
         dispatch({ type: '[Entry] - Update Entry', payload: entry });
     }
+
+    const refreshEntries = async() => {
+        const resp = await entriesApi.get('/entries');
+        console.log(resp);
+    }
+
+    useEffect(() => {
+        refreshEntries();
+    }, [])  
 
   return (
     <EntriesContext.Provider value={{
