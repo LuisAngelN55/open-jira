@@ -38,8 +38,8 @@ export const EntriesProvider: FC<Props> = ({ children }) => {
     }
 
     const refreshEntries = async() => {
-        const resp = await entriesApi.get('/entries');
-        console.log(resp);
+        const { data } = await entriesApi.get<Entry[]>('/entries');
+        dispatch({ type: '[Entry] - Refres Data', payload: data });
     }
 
     useEffect(() => {
