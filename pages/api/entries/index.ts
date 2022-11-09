@@ -15,23 +15,30 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
 
         case 'POST':
             return postEntry( req, res );
+        
+        case 'PUT':
+            return postEntry( req, res );
     
         default:
             return res.status(400).json({ message: 'Endpoint no existe' });
     }
 
-
 }
 
 const getEntries = async( res: NextApiResponse<Data> ) => {
 
-    await db.connect();
+    try {
+        await db.connect();
+        const entries = await Entry.find().sort({ createdAt: 'ascending' });
+        await db.disconnect();
+        res.status(200).json( entries );
 
-    const entries = await Entry.find().sort({ createdAt: 'ascending' });
-
-    await db.disconnect();
-
-    res.status(200).json( entries );
+    } catch (error) {
+        await db.disconnect();
+        console.log(error)
+        res.status(500).json({ message: 'Algo salió mal consultando las entradas, revisar consola del servidor' });
+    }
+    
 }
 
 const postEntry = async( req: NextApiRequest, res: NextApiResponse<Data> ) => {
@@ -53,10 +60,7 @@ const postEntry = async( req: NextApiRequest, res: NextApiResponse<Data> ) => {
     } catch (error) {
         await db.disconnect();
         console.log(error);
-
         return res.status(500).json({ message: 'Algo salió mal, revisar consola del servidor' });
     }
-
-
 
 }
