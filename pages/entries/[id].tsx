@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, useMemo, FC } from 'react';
+import { useState, ChangeEvent, useMemo, FC, useContext } from 'react';
 import { GetServerSideProps } from 'next';
 
 import { capitalize, Grid, Card, CardHeader, CardContent, TextField, CardActions, Button, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio, IconButton } from '@mui/material';
@@ -8,6 +8,10 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { MainLayout } from "../../components/layouts";
 import { Entry, EntryStatus } from "../../interfaces";
 import { dbEntries } from '../../database';
+import { EntriesContext } from '../../context/entries';
+import { useRouter } from 'next/router';
+import { dateFunctions } from '../../utils';
+
 
 const validStatus: EntryStatus[] = [ 'pending', 'in-progress', 'finished'];
 
@@ -17,11 +21,13 @@ interface Props {
 
 
 
-const EntryPage:FC = ( props ) => {
-    console.log({ props })
+const EntryPage:FC<Props> = ( props ) => {
+    const { entry } = props;
+    const router = useRouter()
+    const { updateEntry, deleteEntry } = useContext( EntriesContext )
 
-    const [inputValue, setInputValue] = useState('');
-    const [status, setStatus] = useState<EntryStatus>('pending');
+    const [inputValue, setInputValue] = useState(entry.description);
+    const [status, setStatus] = useState<EntryStatus>(entry.status);
     const [touched, setTouched] = useState(false);
 
     const isNotValid = useMemo(() => inputValue.length <= 0 && touched, [inputValue, touched])
@@ -35,11 +41,24 @@ const EntryPage:FC = ( props ) => {
     }
 
     const onSave = () => {
-        console.log( { inputValue, status })
+        
+        if ( inputValue.trim().length === 0 ) return;
+        
+        const updatedEntry: Entry = {
+            ...entry,
+            status,
+            description: inputValue,
+        }
+        updateEntry( updatedEntry, true );
+    }
+
+    const onDelete = () => {
+        deleteEntry( entry._id )
+        router.push(`/`);
     }
 
   return (
-    <MainLayout title="... ... ...">
+    <MainLayout title={ inputValue.substring(0,20) + '...'}>
         <Grid
             container
             justifyContent='center'
@@ -48,9 +67,9 @@ const EntryPage:FC = ( props ) => {
             <Grid item xs={ 12 } sm={ 8 } md={ 6 }>
                 <Card>
                     <CardHeader
-                        title= {`Entrada: ${ inputValue }`}
+                        title= {`Entrada:`}
 
-                        subheader={`Creada hace: ----- minutos`}
+                        subheader={`Creada ${ dateFunctions.getformatDistanceToNow(entry.createdAt) } minutos`}
                     />
                     <CardContent>
                         <TextField 
@@ -105,7 +124,9 @@ const EntryPage:FC = ( props ) => {
             </Grid>
         </Grid>
 
-        <IconButton sx={{
+        <IconButton 
+        onClick={ onDelete }
+        sx={{
             position: 'fixed',
             bottom: 30,
             right: 30,
@@ -142,7 +163,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
     return {
         props: {
-            entry: entry.description
+            entry
         }
     }
 }

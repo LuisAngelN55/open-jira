@@ -1,4 +1,5 @@
 import { FC, useReducer, useEffect } from 'react';
+import { useSnackbar } from "notistack";
 
 import { EntriesContext, entriesReducer } from './';
 import { Entry } from '../../interfaces';
@@ -19,6 +20,7 @@ const Entries_INITIAL_STATE: EntriesState = {
 export const EntriesProvider: FC<Props> = ({ children }) => {
 
     const [state, dispatch] = useReducer( entriesReducer, Entries_INITIAL_STATE );
+    const { enqueueSnackbar } = useSnackbar();
 
     const addNewEntry = async( description: string ) => {
 
@@ -32,15 +34,53 @@ export const EntriesProvider: FC<Props> = ({ children }) => {
         }
     }
 
-    const updateEntry = async( { _id, description, status }: Entry) => {
+    const updateEntry = async( { _id, description, status }: Entry, showSnackbar = false) => {
         try {
             const { data } = await entriesApi.put<Entry>(`/entries/${ _id }`, { description , status });
             dispatch({ type: '[Entry] - Update Entry', payload: data });
+
+            
+            if ( showSnackbar )
+                enqueueSnackbar( 'Entrada atualizada', {
+                    variant: 'success',
+                    autoHideDuration: 1500,
+                    anchorOrigin: {
+                        vertical: 'top',
+                        horizontal: 'right'
+                    }
+                })
+
+
             
         } catch (error) {
                 console.log({ error });
         }
     }
+
+
+
+    const deleteEntry = async( _id: string ) => {
+
+        try {
+            await entriesApi.delete<Entry>(`/entries/${ _id }` );
+            const { data } = await entriesApi.get<Entry[]>('/entries');
+            dispatch({ type: '[Entry] - Delete Entry', payload: data });
+
+            enqueueSnackbar( 'Entrada Borrada', {
+                variant: 'error',
+                autoHideDuration: 1500,
+                anchorOrigin: {
+                    vertical: 'top',
+                    horizontal: 'right'
+                }
+            })
+        }
+         catch (error) {
+            console.log('No se pudo eliminar la entrada') 
+        }
+    }
+
+
 
     const refreshEntries = async() => {
 
@@ -67,6 +107,7 @@ export const EntriesProvider: FC<Props> = ({ children }) => {
         // Methods
         addNewEntry,
         updateEntry,
+        deleteEntry,
     }}>
         { children }
     </EntriesContext.Provider>
