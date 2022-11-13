@@ -1,18 +1,30 @@
-import { useState, ChangeEvent } from 'react';
-import { MainLayout } from "../../components/layouts";
+import { useState, ChangeEvent, useMemo, FC } from 'react';
+import { GetServerSideProps } from 'next';
+
+import { capitalize, Grid, Card, CardHeader, CardContent, TextField, CardActions, Button, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio, IconButton } from '@mui/material';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 
-import { capitalize, Grid, Card, CardHeader, CardContent, TextField, CardActions, Button, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio, IconButton } from '@mui/material';
-import { EntryStatus } from "../../interfaces";
+import { MainLayout } from "../../components/layouts";
+import { Entry, EntryStatus } from "../../interfaces";
+import { dbEntries } from '../../database';
 
 const validStatus: EntryStatus[] = [ 'pending', 'in-progress', 'finished'];
 
-const EntryPage = () => {
+interface Props {
+    entry: Entry
+}
+
+
+
+const EntryPage:FC = ( props ) => {
+    console.log({ props })
 
     const [inputValue, setInputValue] = useState('');
     const [status, setStatus] = useState<EntryStatus>('pending');
     const [touched, setTouched] = useState(false);
+
+    const isNotValid = useMemo(() => inputValue.length <= 0 && touched, [inputValue, touched])
 
     const onInputValueChanged = ( event: ChangeEvent<HTMLInputElement> ) => {
         setInputValue( event.target.value );
@@ -50,6 +62,9 @@ const EntryPage = () => {
                             label="Nueva entrada"
                             value={ inputValue }
                             onChange= { onInputValueChanged }
+                            onBlur= { () => setTouched( true ) }
+                            helperText= { isNotValid && 'Ingrese un valor' }
+                            error={ isNotValid }
                         />
 
                         <FormControl>
@@ -78,6 +93,7 @@ const EntryPage = () => {
                             variant='contained'
                             fullWidth
                             onClick={ onSave }
+                            disabled= { inputValue.length <= 0 }
                         >
                             Save
                         </Button>
@@ -101,5 +117,35 @@ const EntryPage = () => {
     </MainLayout>
   )
 }
+
+
+// You should use getServerSideProps when:
+// - Only if you need to pre-render a page whose data must be fetched at request time
+
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+    
+    // esto se ejecuta del lado del servidor
+    const { params } = ctx;
+    const { id } = params as { id: string };
+
+    const entry =  await dbEntries.getEntryById( id );
+
+    if ( !entry ) {
+        return {
+            redirect: {
+                destination: '/',
+                permanent: false,
+            }
+        }
+    }
+
+    return {
+        props: {
+            entry: entry.description
+        }
+    }
+}
+
 
 export default EntryPage;
